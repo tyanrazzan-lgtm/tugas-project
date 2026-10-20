@@ -21,7 +21,7 @@ const kategoriSchema = z.object({
 router.get("/", async (_req, res) => {
     try {
         const [rows] = await db.execute<Kategori[]>(
-            `SELECT id_kategori, nama_kategori, deskripsi
+            `SELECT id_kategori, nama_kategori
              FROM tb_kategori
              ORDER BY id_kategori DESC`
         );

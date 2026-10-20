@@ -1,7 +1,7 @@
 
 const API_URL = (
   import.meta.env.VITE_API_URL || "http://localhost:3000"
-).replace(/\/$/, "");
+).replace(/\/+$/, "");
 
 export function getToken(): string {
   return localStorage.getItem("wearify_token") || "";
@@ -30,10 +30,13 @@ export async function api<T = any>(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  const response = await fetch(
+    `${API_URL}${path.startsWith("/") ? path : `/${path}`}`,
+    {
+      ...options,
+      headers,
+    }
+  );
 
   const text = await response.text();
   let data: any = null;

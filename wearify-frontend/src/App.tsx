@@ -1,4 +1,3 @@
-
 import { useEffect, useState, type FormEvent } from "react";
 import { api, getToken, setToken, clearToken, money } from "./api";
 
@@ -37,44 +36,40 @@ export default function App() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  
+ 
 async function loadData() {
   setLoading(true);
   setError("");
 
   try {
-    const p = await api<any>("/api/produk");
+    const [p, c] = await Promise.all([
+      api<any>("/api/produk"),
+      api<any>("/api/kategori"),
+    ]);
 
-    console.log("Respons produk:", p);
+    console.log("Respons API produk:", p);
+    console.log("Respons API kategori:", c);
 
     const productData = Array.isArray(p)
       ? p
       : Array.isArray(p?.data)
         ? p.data
-        : Array.isArray(p?.data?.data)
-          ? p.data.data
+        : Array.isArray(p?.produk)
+          ? p.produk
+          : [];
+
+    const categoryData = Array.isArray(c)
+      ? c
+      : Array.isArray(c?.data)
+        ? c.data
+        : Array.isArray(c?.kategori)
+          ? c.kategori
           : [];
 
     setProducts(productData);
-
-    try {
-      const c = await api<any>("/api/kategori");
-
-      const categoryData = Array.isArray(c)
-        ? c
-        : Array.isArray(c?.data)
-          ? c.data
-          : Array.isArray(c?.data?.data)
-            ? c.data.data
-            : [];
-
-      setCategories(categoryData);
-    } catch (categoryError) {
-      console.error("Gagal mengambil kategori:", categoryError);
-      setCategories([]);
-    }
+    setCategories(categoryData);
   } catch (err) {
-    console.error("Gagal mengambil data produk:", err);
+    console.error("Gagal mengambil data:", err);
 
     setError(
       err instanceof Error
@@ -129,15 +124,10 @@ async function loadData() {
         gambar: form.gambar || null,
       };
 
-      await api(
-        editing !== null
-          ? `/api/produk/${editing}`
-          : "/api/produk",
-        {
-          method: editing !== null ? "PUT" : "POST",
-          body: JSON.stringify(payload),
-        }
-      );
+      await api(editing !== null ? `/api/produk/${editing}` : "/api/produk", {
+        method: editing !== null ? "PUT" : "POST",
+        body: JSON.stringify(payload),
+      });
 
       setForm({ ...emptyForm });
       setEditing(null);
@@ -145,11 +135,7 @@ async function loadData() {
       await loadData();
       alert("Produk berhasil disimpan.");
     } catch (err) {
-      alert(
-        err instanceof Error
-          ? err.message
-          : "Gagal menyimpan produk."
-      );
+      alert(err instanceof Error ? err.message : "Gagal menyimpan produk.");
     }
   }
 
@@ -161,15 +147,15 @@ async function loadData() {
       await loadData();
       alert("Produk berhasil dihapus.");
     } catch (err) {
-      alert(
-        err instanceof Error
-          ? err.message
-          : "Gagal menghapus produk."
-      );
+      alert(err instanceof Error ? err.message : "Gagal menghapus produk.");
     }
   }
 
   function startEdit(product: Product) {
+      console.log("Produk yang diedit:", product);
+  console.log("Daftar kategori:", categories);
+
+
     setEditing(product.id_produk);
     setForm({
       nama_produk: product.nama_produk,
@@ -192,7 +178,7 @@ async function loadData() {
   }
 
   const visible = products.filter((product) =>
-    product.nama_produk.toLowerCase().includes(search.toLowerCase())
+    product.nama_produk.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -247,8 +233,8 @@ async function loadData() {
             </h1>
 
             <p className="hero-desc">
-              Temukan gaya favoritmu bersama Wearify.
-              Pilihan fashion untuk menemani setiap cerita.
+              Temukan gaya favoritmu bersama Wearify. Pilihan fashion untuk
+              menemani setiap cerita.
             </p>
 
             <a className="btn btn-dark hero-button" href="#produk">
@@ -295,15 +281,15 @@ async function loadData() {
           <div className="section-heading">
             <div>
               <p className="eyebrow">THE WEARIFY SELECTION</p>
-              <h2>Temukan gayamu<span>.</span></h2>
+              <h2>
+                Temukan gayamu<span>.</span>
+              </h2>
               <p className="section-desc">
                 Koleksi pilihan untuk melengkapi keseharianmu.
               </p>
             </div>
 
-            <div className="product-count">
-              {visible.length} PRODUK
-            </div>
+            <div className="product-count">{visible.length} PRODUK</div>
           </div>
 
           <div className="filter-row">
@@ -355,7 +341,7 @@ async function loadData() {
                       <p className="product-category">
                         {categories.find(
                           (category) =>
-                            category.id_kategori === product.id_kategori
+                            category.id_kategori === product.id_kategori,
                         )?.nama_kategori || "EVERYDAY COLLECTION"}
                       </p>
 
@@ -404,14 +390,16 @@ async function loadData() {
             <p className="eyebrow">A LITTLE ABOUT WEARIFY</p>
             <h2>Style that feels like you.</h2>
             <p>
-              Kami percaya bahwa gaya bukan sekadar apa yang kamu pakai,
-              tetapi juga cara kamu mengekspresikan diri. Temukan pilihan
-              yang terasa nyaman dan mencerminkan ceritamu.
+              Kami percaya bahwa gaya bukan sekadar apa yang kamu pakai, tetapi
+              juga cara kamu mengekspresikan diri. Temukan pilihan yang terasa
+              nyaman dan mencerminkan ceritamu.
             </p>
             <a href="#produk" className="story-link">
               Explore the collection ↗
             </a>
-            <div className="story-signature">wearify<span>.</span></div>
+            <div className="story-signature">
+              wearify<span>.</span>
+            </div>
           </div>
         </section>
       </main>
@@ -434,7 +422,9 @@ async function loadData() {
           <div className="admin-heading">
             <div>
               <p className="eyebrow">MANAGE YOUR STORE</p>
-              <h2>Dashboard Admin<span>.</span></h2>
+              <h2>
+                Dashboard Admin<span>.</span>
+              </h2>
             </div>
 
             <button className="btn btn-outline" onClick={logout}>
@@ -460,17 +450,21 @@ async function loadData() {
             <label>
               Kategori
               <select
-                value={form.id_kategori}
+                value={String(form.id_kategori ?? "")}
                 onChange={(e) =>
-                  setForm({ ...form, id_kategori: e.target.value })
+                  setForm({
+                    ...form,
+                    id_kategori: e.target.value,
+                  })
                 }
                 required
               >
                 <option value="">Pilih kategori</option>
+
                 {categories.map((category) => (
                   <option
                     key={category.id_kategori}
-                    value={category.id_kategori}
+                    value={String(category.id_kategori)}
                   >
                     {category.nama_kategori}
                   </option>
@@ -485,9 +479,7 @@ async function loadData() {
                 min="0"
                 placeholder="150000"
                 value={form.harga}
-                onChange={(e) =>
-                  setForm({ ...form, harga: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, harga: e.target.value })}
                 required
               />
             </label>
@@ -498,9 +490,7 @@ async function loadData() {
                 type="url"
                 placeholder="https://contoh.com/gambar.jpg"
                 value={form.gambar}
-                onChange={(e) =>
-                  setForm({ ...form, gambar: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, gambar: e.target.value })}
               />
             </label>
 
@@ -556,7 +546,9 @@ async function loadData() {
             </button>
 
             <p className="eyebrow">WEARIFY / ADMIN</p>
-            <h2>Welcome back<span>.</span></h2>
+            <h2>
+              Welcome back<span>.</span>
+            </h2>
             <p className="login-desc">
               Masuk untuk mengelola koleksi produk Wearify.
             </p>
